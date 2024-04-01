@@ -77,48 +77,60 @@ public class User_Account extends AppCompatActivity {
             floating_action_menu.setVisibility(View.GONE);
         }
 
+        if (role.equals("admin")) {
+            Bundle bundle = getIntent().getExtras();
+            if (bundle != null){
+                userName.setText(bundle.getString("Name"));
+                phoneNumber.setText(bundle.getString("Phone"));
+                userEmail.setText(bundle.getString("Email"));
+                key = bundle.getString("Key");
+                imageUrl = bundle.getString("Image");
+                Glide.with(this).load(bundle.getString("Image")).into(userImage);
+            }
+        }else{
+            // Get current logged in user
+            FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
+            if (currentUser != null) {
+                // Retrieve user's UID
+                String userId = currentUser.getUid();
 
-        // Get current logged in user
-        FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
-        if (currentUser != null) {
-            // Retrieve user's UID
-            String userId = currentUser.getUid();
+                // Reference to user data in Firebase Realtime Database
+                DatabaseReference userRef = FirebaseDatabase.getInstance().getReference().child("users").child(userId);
 
-            // Reference to user data in Firebase Realtime Database
-            DatabaseReference userRef = FirebaseDatabase.getInstance().getReference().child("users").child(userId);
+                // Retrieve user's data
+                userRef.addListenerForSingleValueEvent(new ValueEventListener() {
+                    @Override
+                    public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                        if (dataSnapshot.exists()) {
+                            // Retrieve user data
+                            String username = dataSnapshot.child("username").getValue(String.class);
+                            String useremail = dataSnapshot.child("useremail").getValue(String.class);
+                            String userphone = dataSnapshot.child("userphone").getValue(String.class);
+                            imageUrl = dataSnapshot.child("userImage").getValue(String.class);
 
-            // Retrieve user's data
-            userRef.addListenerForSingleValueEvent(new ValueEventListener() {
-                @Override
-                public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
-                    if (dataSnapshot.exists()) {
-                        // Retrieve user data
-                        String username = dataSnapshot.child("username").getValue(String.class);
-                        String useremail = dataSnapshot.child("useremail").getValue(String.class);
-                        String userphone = dataSnapshot.child("userphone").getValue(String.class);
-                        imageUrl = dataSnapshot.child("userImage").getValue(String.class);
+                            // Populate TextViews with user data
+                            userName.setText(username);
+                            userEmail.setText(useremail);
+                            phoneNumber.setText(userphone);
 
-                        // Populate TextViews with user data
-                        userName.setText(username);
-                        userEmail.setText(useremail);
-                        phoneNumber.setText(userphone);
-
-                        Glide.with(User_Account.this)
-                                .load(imageUrl)
-                                .placeholder(R.drawable.avatar) // Placeholder image while loading
-                                .error(R.drawable.avatar) // Error image if loading fails
-                                .into(userImage);
-                    } else {
-                        Toast.makeText(User_Account.this, "User data not found", Toast.LENGTH_SHORT).show();
+                            Glide.with(User_Account.this)
+                                    .load(imageUrl)
+                                    .placeholder(R.drawable.avatar) // Placeholder image while loading
+                                    .error(R.drawable.avatar) // Error image if loading fails
+                                    .into(userImage);
+                        } else {
+                            Toast.makeText(User_Account.this, "User data not found", Toast.LENGTH_SHORT).show();
+                        }
                     }
-                }
 
-                @Override
-                public void onCancelled(@NonNull DatabaseError databaseError) {
-                    Toast.makeText(User_Account.this, "Failed to retrieve user data", Toast.LENGTH_SHORT).show();
-                }
-            });
+                    @Override
+                    public void onCancelled(@NonNull DatabaseError databaseError) {
+                        Toast.makeText(User_Account.this, "Failed to retrieve user data", Toast.LENGTH_SHORT).show();
+                    }
+                });
+            }
         }
+
 
         delete_btn.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -129,26 +141,79 @@ public class User_Account extends AppCompatActivity {
                 builder.setPositiveButton("Yes", new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
-                        // Delete the user's account from Firebase
-                        FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
-                        if (currentUser != null) {
-                            String userId = currentUser.getUid();
-                            DatabaseReference userRef = FirebaseDatabase.getInstance().getReference().child("users").child(userId);
+
+                        if (role.equals("admin")) {
+                            DatabaseReference userRef = FirebaseDatabase.getInstance().getReference().child("users").child(key);
                             userRef.removeValue().addOnCompleteListener(new OnCompleteListener<Void>() {
                                 @Override
                                 public void onComplete(@NonNull Task<Void> task) {
                                     if (task.isSuccessful()) {
-                                        // Account deleted successfully
-                                        Toast.makeText(User_Account.this, "Account deleted successfully", Toast.LENGTH_SHORT).show();
-                                        FirebaseAuth.getInstance().signOut(); // Sign out the user
-                                        startActivity(new Intent(User_Account.this, MainActivity.class)); // Redirect to login page
-                                        finish(); // Close current activity
+                                        DatabaseReference userRef = FirebaseDatabase.getInstance().getReference().child("users").child(key);
+                                        userRef.removeValue().addOnCompleteListener(new OnCompleteListener<Void>() {
+                                            @Override
+                                            public void onComplete(@NonNull Task<Void> task) {
+                                                if (task.isSuccessful()) {
+                                                    // Account deleted successfully from real-time database
+                                                    Toast.makeText(User_Account.this, "Account deleted successfully", Toast.LENGTH_SHORT).show();
+
+                                                    // Determine the activity to redirect based on the user's role
+                                                    SharedPreferences sharedPreferences = getSharedPreferences("user_role", MODE_PRIVATE);
+                                                    String role = sharedPreferences.getString("role", "");
+                                                    Class<?> targetActivity = (role != null && role.equals("admin")) ? Users_list.class : MainActivity.class;
+
+                                                    startActivity(new Intent(User_Account.this, targetActivity)); // Redirect to corresponding activity
+                                                    finish(); // Close current activity
+                                                } else {
+                                                    Toast.makeText(User_Account.this, "Failed to delete account", Toast.LENGTH_SHORT).show();
+                                                }
+                                            }
+                                        });
                                     } else {
                                         Toast.makeText(User_Account.this, "Failed to delete account", Toast.LENGTH_SHORT).show();
                                     }
                                 }
                             });
+                        }else{
+                            // Delete the user's account from Firebase
+                            FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
+                            if (currentUser != null) {
+                                String userId = currentUser.getUid();
+                                DatabaseReference userRef = FirebaseDatabase.getInstance().getReference().child("users").child(userId);
+                                userRef.removeValue().addOnCompleteListener(new OnCompleteListener<Void>() {
+                                    @Override
+                                    public void onComplete(@NonNull Task<Void> task) {
+                                        if (task.isSuccessful()) {
+                                            // Account deleted successfully from real-time database
+                                            Toast.makeText(User_Account.this, "Account deleted successfully", Toast.LENGTH_SHORT).show();
+                                            // Now delete the user from Firebase Authentication
+                                            currentUser.delete().addOnCompleteListener(new OnCompleteListener<Void>() {
+                                                @Override
+                                                public void onComplete(@NonNull Task<Void> task) {
+                                                    if (task.isSuccessful()) {
+                                                        // User deleted from Authentication
+                                                        FirebaseAuth.getInstance().signOut(); // Sign out the user
+
+                                                        // Determine the activity to redirect based on the user's role
+                                                        SharedPreferences sharedPreferences = getSharedPreferences("user_role", MODE_PRIVATE);
+                                                        String role = sharedPreferences.getString("role", "");
+                                                        Class<?> targetActivity = (role != null && role.equals("admin")) ? Users_list.class : MainActivity.class;
+
+                                                        startActivity(new Intent(User_Account.this, targetActivity)); // Redirect to corresponding activity
+                                                        finish(); // Close current activity
+                                                    } else {
+                                                        // Failed to delete user from Authentication
+                                                        Toast.makeText(User_Account.this, "Failed to delete account from Authentication", Toast.LENGTH_SHORT).show();
+                                                    }
+                                                }
+                                            });
+                                        } else {
+                                            Toast.makeText(User_Account.this, "Failed to delete account", Toast.LENGTH_SHORT).show();
+                                        }
+                                    }
+                                });
+                            }
                         }
+
                     }
                 });
                 builder.setNegativeButton("No", new DialogInterface.OnClickListener() {
@@ -162,6 +227,8 @@ public class User_Account extends AppCompatActivity {
                 dialog.show();
             }
         });
+
+
 
         editUserButton.setOnClickListener(new View.OnClickListener() {
 
