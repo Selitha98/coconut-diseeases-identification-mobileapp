@@ -40,7 +40,7 @@ public class User_Edit extends AppCompatActivity {
 
 
     ImageView updateUserImage, backIcon;
-    ImageButton updateUserButton;
+    ImageButton updateUserButton,imageUploadbtn;
     EditText updateUserName, updateUserPhone;
     TextView updateUserEmail;
     String name,phone, email;
@@ -60,6 +60,7 @@ public class User_Edit extends AppCompatActivity {
         updateUserName = findViewById(R.id.updateUserName);
         updateUserPhone = findViewById(R.id.updateUserPhone);
         updateUserEmail = findViewById(R.id.updateUserEmail);
+        imageUploadbtn = findViewById(R.id.imageUploadbtn);
 
         backIcon = findViewById(R.id.backIcon);
 
@@ -74,7 +75,7 @@ public class User_Edit extends AppCompatActivity {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
                         // Redirect to Users_list activity
-                        startActivity(new Intent(User_Edit.this, Users_list.class));
+                        startActivity(new Intent(User_Edit.this, User_Account.class));
                         finish(); // Close current activity
                     }
                 });
@@ -111,12 +112,15 @@ public class User_Edit extends AppCompatActivity {
         Bundle bundle = getIntent().getExtras();
 
         if (bundle != null){
+            // Load the image using Glide
+            Glide.with(User_Edit.this).load(imageUrl).into(updateUserImage);
             Glide.with(User_Edit.this).load(bundle.getString("Image")).into(updateUserImage);
             updateUserName.setText(bundle.getString("Name"));
             updateUserEmail.setText(bundle.getString("Email"));
             updateUserPhone.setText(bundle.getString("Phone"));
             key = bundle.getString("Key");
             oldImageURL = bundle.getString("Image");
+            Log.d("User_Edit_Image", "Image URL: " + oldImageURL); // Log the image URL
         }
 
         databaseReference = FirebaseDatabase.getInstance().getReference("users").child(key);
@@ -130,14 +134,24 @@ public class User_Edit extends AppCompatActivity {
             }
         });
 
+        imageUploadbtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent photoPicker = new Intent(Intent.ACTION_PICK);
+                photoPicker.setType("image/*");
+                activityResultLauncher.launch(photoPicker);
+            }
+        });
+
         updateUserButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 saveData();
-                Intent intent = new Intent(User_Edit.this, User_Account.class);
-                startActivity(intent);
             }
         });
+
+
+
     }
 
     public void saveData(){
@@ -192,7 +206,10 @@ public class User_Edit extends AppCompatActivity {
                         reference.delete();
                     }
                     Toast.makeText(User_Edit.this, "User Updated", Toast.LENGTH_SHORT).show();
-                    finish();
+                    // Redirect to User_Account activity
+                    Intent intent = new Intent(User_Edit.this, User_Account.class);
+                    startActivity(intent);
+                    finish(); // Close current activity
                 }
             }
         }).addOnFailureListener(new OnFailureListener() {
@@ -214,7 +231,7 @@ public class User_Edit extends AppCompatActivity {
                 @Override
                 public void onClick(DialogInterface dialog, int which) {
                     // Redirect to Users_list activity
-                    startActivity(new Intent(User_Edit.this, Users_list.class));
+                    startActivity(new Intent(User_Edit.this, User_Account.class));
                     finish(); // Close current activity
                 }
             });

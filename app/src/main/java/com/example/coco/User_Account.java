@@ -35,7 +35,7 @@ public class User_Account extends AppCompatActivity {
     ImageButton delete_btn;
     FloatingActionButton editUserButton;
     FloatingActionMenu floating_action_menu;
-    ImageView hamburgerIcon,backIcon;
+    ImageView hamburgerIcon,backIcon, userImage;
     String key = "";
     String imageUrl = "";
 
@@ -47,6 +47,7 @@ public class User_Account extends AppCompatActivity {
         userName = findViewById(R.id.userName);
         phoneNumber = findViewById(R.id.phoneNumber);
         userEmail = findViewById(R.id.userEmail);
+        userImage = findViewById(R.id.userImage);
 
         delete_btn = findViewById(R.id.delete_btn);
 
@@ -95,11 +96,18 @@ public class User_Account extends AppCompatActivity {
                         String username = dataSnapshot.child("username").getValue(String.class);
                         String useremail = dataSnapshot.child("useremail").getValue(String.class);
                         String userphone = dataSnapshot.child("userphone").getValue(String.class);
+                        imageUrl = dataSnapshot.child("userImage").getValue(String.class);
 
                         // Populate TextViews with user data
                         userName.setText(username);
                         userEmail.setText(useremail);
                         phoneNumber.setText(userphone);
+
+                        Glide.with(User_Account.this)
+                                .load(imageUrl)
+                                .placeholder(R.drawable.avatar) // Placeholder image while loading
+                                .error(R.drawable.avatar) // Error image if loading fails
+                                .into(userImage);
                     } else {
                         Toast.makeText(User_Account.this, "User data not found", Toast.LENGTH_SHORT).show();
                     }
