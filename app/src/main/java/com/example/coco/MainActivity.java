@@ -16,6 +16,8 @@ import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.AuthResult;
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseAuthInvalidCredentialsException;
+import com.google.firebase.auth.FirebaseAuthInvalidUserException;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.auth.SignInMethodQueryResult;
 import com.google.firebase.database.DataSnapshot;
@@ -91,10 +93,21 @@ public class MainActivity extends AppCompatActivity {
                                     checkUserRole(currentUser.getUid());
                                     Toast.makeText(MainActivity.this, "Login Successfully !", Toast.LENGTH_SHORT).show();
                                 } else {
-                                    Toast.makeText(MainActivity.this, "Login Failed !", Toast.LENGTH_SHORT).show();
+                                    Exception exception = task.getException();
+                                    if (exception instanceof FirebaseAuthInvalidUserException) {
+                                        // User does not exist
+                                        Toast.makeText(MainActivity.this, "User does not exist!", Toast.LENGTH_SHORT).show();
+                                    } else if (exception instanceof FirebaseAuthInvalidCredentialsException) {
+                                        // Incorrect password
+                                        Toast.makeText(MainActivity.this, "Incorrect email or password!", Toast.LENGTH_SHORT).show();
+                                    } else {
+                                        // Other error
+                                        Toast.makeText(MainActivity.this, "Login Failed: " + exception.getMessage(), Toast.LENGTH_SHORT).show();
+                                    }
                                 }
                             }
                         });
+
             }
         });
     }
@@ -122,7 +135,7 @@ public class MainActivity extends AppCompatActivity {
 
             @Override
             public void onCancelled(@NonNull DatabaseError databaseError) {
-                Toast.makeText(MainActivity.this, "Error fetching user role.", Toast.LENGTH_SHORT).show();
+                Toast.makeText(MainActivity.this, "Login Failed", Toast.LENGTH_SHORT).show();
             }
         });
     }
